@@ -44,22 +44,22 @@ export function useTokenAccounts() {
   const { connection } = useConnection();
   const [tokenAccounts, setTokenAccounts] = useState<ITokenAccount[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const { publicKey } = useWallet();
-  if (!publicKey) {
-    setTokenAccounts([]);
-    toast.error("Connect Wallet first !");
-    return { tokenAccounts };
-  }
 
-  const walletAddress = new PublicKey(publicKey);
   useEffect(() => {
+    if (!publicKey) {
+      setTokenAccounts([]);
+      toast.error("Connect Wallet first!");
+      return;
+    }
+
     const fetchTokenAccounts = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const ownerPublicKey = walletAddress;
+        const ownerPublicKey = new PublicKey(publicKey);
         const tokenAccountsResponse =
           await connection.getParsedTokenAccountsByOwner(ownerPublicKey, {
             programId: new PublicKey(
@@ -78,7 +78,8 @@ export function useTokenAccounts() {
 
         setTokenAccounts(accounts);
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : "Error ";
+        const errMsg = err instanceof Error ? err.message : "Error";
+        setError(errMsg);
         toast.error("Error fetching token accounts: " + errMsg);
       } finally {
         setLoading(false);
@@ -86,14 +87,7 @@ export function useTokenAccounts() {
     };
 
     fetchTokenAccounts();
-  }, [publicKey]);
+  }, [publicKey, connection]);
 
   return { tokenAccounts, loading, error };
-}
-
-export function getPDA(seedArray: (Uint8Array | Buffer)[]) {
-  const { programId } = useCommonProgram();
-  const pda = PublicKey.findProgramAddressSync(seedArray, programId);
-
-  return pda;
 }
