@@ -44,7 +44,7 @@ export function VestingdappCreate() {
     };
   }, [document.activeElement, showDropdown]);
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto">
+    <div className="px-4 py-2 space-y-4 max-w-lg mx-auto">
       <input
         type="text"
         placeholder="Enter Company Name"
@@ -153,7 +153,7 @@ export function VestingdappList() {
             (ele) =>
               ele.account.owner.toBase58() === walletPublicKey?.toBase58()
           ) ? (
-          <div className="flex p-2 gap-4 flex-col overflow-y-auto h-[calc(100vh-320px)]">
+          <div className="flex p-2 gap-4 flex-col overflow-y-auto h-[calc(100vh-340px)]">
             <PerfectScrollbar>
               {vestingAccounts.data?.map((account) => (
                 <VestingdappCard
@@ -254,7 +254,7 @@ function VestingdappCard({ account }: { account: PublicKey }) {
               />
             </div>
             <div className="flex-grow flex justify-center">
-              <button className="w-full md:w-[50%] btn btn-xs lg:btn-md btn-outline flex">
+              <button className="w-[90%] md:w-[50%] btn btn-xs lg:btn-md btn-outline flex">
                 Create Employee Vesting Account
               </button>
             </div>
