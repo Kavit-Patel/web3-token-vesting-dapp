@@ -66,7 +66,7 @@ export function MemeTokenList() {
         >
           Create New Token Program
         </Link>
-        <span>Your connected wallet doesn't have any token accounts.</span>
+        <span>Your connected wallet doesnot have any token accounts.</span>
       </div>
     );
   }

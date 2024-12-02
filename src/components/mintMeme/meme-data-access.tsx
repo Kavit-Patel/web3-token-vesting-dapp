@@ -13,7 +13,6 @@ import {
 } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useTransactionToast } from "../ui/ui-layout";
 import { ITokenAccount } from "./types";
 import {
   createAssociatedTokenAccountInstruction,
@@ -29,7 +28,6 @@ export const createMintAndTokenAccount = async (
   walletAdapter: WalletContextState,
   tokenAmount: string | number | bigint | boolean
 ) => {
-  const transactionToast = useTransactionToast();
   try {
     if (!walletAdapter || !walletAdapter.connected) {
       throw new Error("Wallet not connected. Please connect your wallet.");
@@ -95,7 +93,7 @@ export const createMintAndTokenAccount = async (
         skipPreflight: false,
       }
     );
-    transactionToast(signature);
+    toast.success("Token Created Successfully !" + signature);
     return { signature, mint: mint.publicKey, associatedTokenAccount };
   } catch (error) {
     console.error("Error creating mint token:", error);
