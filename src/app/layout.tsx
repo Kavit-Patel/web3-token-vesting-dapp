@@ -12,6 +12,9 @@ export const metadata = {
 const links: { label: string; path: string }[] = [
   { label: "Account", path: "/account" },
   { label: "Clusters", path: "/clusters" },
+];
+const companyLinks: { label: string; path: string }[] = [
+  { label: "Token Program", path: "/mint" },
   { label: "Vesting Program", path: "/dapptokenvesting" },
 ];
 
@@ -30,7 +33,9 @@ export default function RootLayout({
         <ReactQueryProvider>
           <ClusterProvider>
             <SolanaProvider>
-              <UiLayout links={links}>{children}</UiLayout>
+              <UiLayout links={links} companyLinks={companyLinks}>
+                {children}
+              </UiLayout>
             </SolanaProvider>
           </ClusterProvider>
         </ReactQueryProvider>

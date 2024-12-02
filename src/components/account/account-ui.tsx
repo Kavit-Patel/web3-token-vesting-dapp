@@ -15,6 +15,8 @@ import {
   useRequestAirdrop,
   useTransferSol,
 } from "./account-data-access";
+import PerfectScrollbar from "react-perfect-scrollbar";
+import "react-perfect-scrollbar/dist/css/styles.css";
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address });
@@ -159,59 +161,63 @@ export function AccountTokens({ address }: { address: PublicKey }) {
           {query.data.length === 0 ? (
             <div>No token accounts found.</div>
           ) : (
-            <table className="table border-4 rounded-lg border-separate border-base-300">
-              <thead>
-                <tr>
-                  <th>Public Key</th>
-                  <th>Mint</th>
-                  <th className="text-right">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items?.map(({ account, pubkey }) => (
-                  <tr key={pubkey.toString()}>
-                    <td>
-                      <div className="flex space-x-2">
-                        <span className="font-mono">
-                          <ExplorerLink
-                            label={ellipsify(pubkey.toString())}
-                            path={`account/${pubkey.toString()}`}
-                          />
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex space-x-2">
-                        <span className="font-mono">
-                          <ExplorerLink
-                            label={ellipsify(account.data.parsed.info.mint)}
-                            path={`account/${account.data.parsed.info.mint.toString()}`}
-                          />
-                        </span>
-                      </div>
-                    </td>
-                    <td className="text-right">
-                      <span className="font-mono">
-                        {account.data.parsed.info.tokenAmount.uiAmount}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+            <div className="h-[140px]">
+              <PerfectScrollbar>
+                <table className="table border-4 rounded-lg border-separate border-base-300">
+                  <thead>
+                    <tr>
+                      <th>Public Key</th>
+                      <th>Mint</th>
+                      <th className="text-right">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items?.map(({ account, pubkey }) => (
+                      <tr key={pubkey.toString()}>
+                        <td>
+                          <div className="flex space-x-2">
+                            <span className="font-mono">
+                              <ExplorerLink
+                                label={ellipsify(pubkey.toString())}
+                                path={`account/${pubkey.toString()}`}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="flex space-x-2">
+                            <span className="font-mono">
+                              <ExplorerLink
+                                label={ellipsify(account.data.parsed.info.mint)}
+                                path={`account/${account.data.parsed.info.mint.toString()}`}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                        <td className="text-right">
+                          <span className="font-mono">
+                            {account.data.parsed.info.tokenAmount.uiAmount}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
 
-                {(query.data?.length ?? 0) > 5 && (
-                  <tr>
-                    <td colSpan={4} className="text-center">
-                      <button
-                        className="btn btn-xs btn-outline"
-                        onClick={() => setShowAll(!showAll)}
-                      >
-                        {showAll ? "Show Less" : "Show All"}
-                      </button>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                    {(query.data?.length ?? 0) > 5 && (
+                      <tr>
+                        <td colSpan={4} className="text-center">
+                          <button
+                            className="btn btn-xs btn-outline"
+                            onClick={() => setShowAll(!showAll)}
+                          >
+                            {showAll ? "Show Less" : "Show All"}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </PerfectScrollbar>
+            </div>
           )}
         </div>
       )}
@@ -255,61 +261,65 @@ export function AccountTransactions({ address }: { address: PublicKey }) {
           {query.data.length === 0 ? (
             <div>No transactions found.</div>
           ) : (
-            <table className="md:table w-full border-4 rounded-lg border-separate border-base-300 overflow-x-auto">
-              <thead>
-                <tr>
-                  <th>Signature</th>
-                  <th className="text-right">Slot</th>
-                  <th>Block Time</th>
-                  <th className="text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items?.map((item) => (
-                  <tr key={item.signature} className="text-xs">
-                    <th className="font-mono">
-                      <ExplorerLink
-                        path={`tx/${item.signature}`}
-                        label={ellipsify(item.signature, 8)}
-                      />
-                    </th>
-                    <td className="font-mono text-right">
-                      <ExplorerLink
-                        path={`block/${item.slot}`}
-                        label={item.slot.toString()}
-                      />
-                    </td>
-                    <td>
-                      {new Date((item.blockTime ?? 0) * 1000).toISOString()}
-                    </td>
-                    <td className="text-right">
-                      {item.err ? (
-                        <div
-                          className="badge badge-error"
-                          title={JSON.stringify(item.err)}
-                        >
-                          Failed
-                        </div>
-                      ) : (
-                        <div className="badge badge-success">Success</div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {(query.data?.length ?? 0) > 5 && (
-                  <tr>
-                    <td colSpan={4} className="text-center">
-                      <button
-                        className="btn btn-xs btn-outline"
-                        onClick={() => setShowAll(!showAll)}
-                      >
-                        {showAll ? "Show Less" : "Show All"}
-                      </button>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div className="h-[140px]">
+              <PerfectScrollbar>
+                <table className="md:table w-full border-4 rounded-lg border-separate border-base-300 overflow-x-auto">
+                  <thead>
+                    <tr>
+                      <th>Signature</th>
+                      <th className="text-right">Slot</th>
+                      <th>Block Time</th>
+                      <th className="text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items?.map((item) => (
+                      <tr key={item.signature} className="text-xs">
+                        <th className="font-mono">
+                          <ExplorerLink
+                            path={`tx/${item.signature}`}
+                            label={ellipsify(item.signature, 8)}
+                          />
+                        </th>
+                        <td className="font-mono text-right">
+                          <ExplorerLink
+                            path={`block/${item.slot}`}
+                            label={item.slot.toString()}
+                          />
+                        </td>
+                        <td>
+                          {new Date((item.blockTime ?? 0) * 1000).toISOString()}
+                        </td>
+                        <td className="text-right">
+                          {item.err ? (
+                            <div
+                              className="badge badge-error"
+                              title={JSON.stringify(item.err)}
+                            >
+                              Failed
+                            </div>
+                          ) : (
+                            <div className="badge badge-success">Success</div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {(query.data?.length ?? 0) > 5 && (
+                      <tr>
+                        <td colSpan={4} className="text-center">
+                          <button
+                            className="btn btn-xs btn-outline"
+                            onClick={() => setShowAll(!showAll)}
+                          >
+                            {showAll ? "Show Less" : "Show All"}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </PerfectScrollbar>
+            </div>
           )}
         </div>
       )}

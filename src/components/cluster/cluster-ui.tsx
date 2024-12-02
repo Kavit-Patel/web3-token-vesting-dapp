@@ -74,7 +74,7 @@ export function ClusterUiSelect({
       </label>
       <ul
         tabIndex={0}
-        className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4"
+        className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4 absolute top-14"
       >
         {clusters.map((item) => (
           <li key={item.name}>

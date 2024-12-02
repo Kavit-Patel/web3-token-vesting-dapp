@@ -7,22 +7,19 @@ import { ReactNode, Suspense, useEffect, useRef } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 import { AccountChecker } from "../account/account-ui";
-import {
-  ClusterChecker,
-  ClusterUiSelect,
-  ExplorerLink,
-} from "../cluster/cluster-ui";
-import { WalletButton } from "../solana/solana-provider";
+import { ClusterChecker, ExplorerLink } from "../cluster/cluster-ui";
 import { TiThMenu } from "react-icons/ti";
+import NavbarLinkList from "./navbar-link-list";
 
 export function UiLayout({
   children,
   links,
+  companyLinks,
 }: {
   children: ReactNode;
   links: { label: string; path: string }[];
+  companyLinks: { label: string; path: string }[];
 }) {
-  const pathname = usePathname();
   const [showMenu, setShowMenu] = React.useState<boolean>(false);
   return (
     <div className="h-full flex flex-col ">
@@ -37,52 +34,13 @@ export function UiLayout({
           >
             <TiThMenu className="" />
           </div>
-          {showMenu && (
-            <ul
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMenu(false);
-              }}
-              className="md:hidden absolute w-screen h-[calc(100vh-140px)] md:w-[unset] md:h-[unset] bg-base-100 top-[70px] z-40 flex flex-col gap-4 justify-center items-center"
-            >
-              {links.map(({ label, path }) => (
-                <li key={path} className=" h-4">
-                  <Link
-                    className={pathname.startsWith(path) ? "active" : ""}
-                    href={path}
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-              <li className="">
-                <WalletButton />
-              </li>
-              <li
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                <ClusterUiSelect setShowMenu={setShowMenu} />
-              </li>
-            </ul>
-          )}
-          <ul className="hidden md:flex md:menu md:menu-horizontal px-1 space-x-2">
-            {links.map(({ label, path }) => (
-              <li key={path}>
-                <Link
-                  className={pathname.startsWith(path) ? "active" : ""}
-                  href={path}
-                >
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="hidden md:flex  flex-none space-x-2 ">
-          <WalletButton />
-          <ClusterUiSelect setShowMenu={setShowMenu} />
+
+          <NavbarLinkList
+            links={links}
+            companyLinks={companyLinks}
+            showMenu={showMenu}
+            setShowMenu={setShowMenu}
+          />
         </div>
       </div>
       <ClusterChecker>
