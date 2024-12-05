@@ -49,10 +49,7 @@ export function ClusterChecker({ children }: { children: ReactNode }) {
         <span>
           Error connecting to cluster <strong>{cluster.name}</strong>
         </span>
-        <button
-          className="btn btn-xs btn-neutral"
-          onClick={() => query.refetch()}
-        >
+        <button className="btn btn-neutral" onClick={() => query.refetch()}>
           Refresh
         </button>
       </div>
@@ -196,7 +193,7 @@ export function ClusterUiTable() {
               <td className="space-x-2 whitespace-nowrap text-center">
                 <button
                   disabled={item?.active}
-                  className="btn btn-xs btn-default btn-outline"
+                  className="btn btn-default btn-outline"
                   onClick={() => {
                     if (!window.confirm("Are you sure?")) return;
                     deleteCluster(item);

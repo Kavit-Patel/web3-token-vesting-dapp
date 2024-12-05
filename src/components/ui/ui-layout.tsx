@@ -114,7 +114,7 @@ export function AppModal({
           <div className="join space-x-2">
             {submit ? (
               <button
-                className="btn btn-xs lg:btn-md btn-primary"
+                className="btn lg:btn-md btn-primary"
                 onClick={submit}
                 disabled={submitDisabled}
               >

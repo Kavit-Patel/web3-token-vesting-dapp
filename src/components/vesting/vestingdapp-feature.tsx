@@ -25,7 +25,7 @@ export default function VestingdappFeature() {
               label={ellipsify(programId.toString())}
             />
           </p>
-          <VestingdappCreate />
+          <VestingdappCreate publicKey={publicKey} />
         </AppHero>
       )}
       {pathName === "/dapptokenvesting" && <VestingdappList />}

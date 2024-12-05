@@ -2,10 +2,7 @@
 
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useMemo, useState } from "react";
-import {
-  useCommonProgram,
-  useTokenAccounts,
-} from "../common/common-data-access";
+import { useCommonProgram } from "../common/common-data-access";
 import {
   useVesting,
   useVestingdappProgramAccount,
@@ -15,9 +12,10 @@ import Loader from "../common/common-loader";
 import Link from "next/link";
 import PerfectScrollbar from "react-perfect-scrollbar";
 import "react-perfect-scrollbar/dist/css/styles.css";
-export function VestingdappCreate() {
+import { useGetTokenAccounts } from "../account/account-data-access";
+export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
   const { createVestingAccount } = useVesting();
-  const { tokenAccounts } = useTokenAccounts();
+  const tokenAccountsQuery = useGetTokenAccounts({ address: publicKey });
   const [companyName, setCompanyName] = useState<string>("");
   const [tokenAmountTobeVested, setTokenAmountTobeVested] =
     useState<string>("");
@@ -69,21 +67,22 @@ export function VestingdappCreate() {
           onFocus={() => setShowDropdown(true)}
           onClick={(e) => {
             e.stopPropagation();
+            tokenAccountsQuery.refetch();
             setShowDropdown(true);
           }}
           className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
         />
         {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-300 rounded-md shadow-lg flex flex-col max-h-96 overflow-y-auto">
-            {tokenAccounts.map((account, index) => (
+          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-300 rounded-md shadow-lg flex flex-col max-h-72 overflow-y-auto">
+            {tokenAccountsQuery?.data?.map(({ account, pubkey }) => (
               <div
-                key={index}
+                key={pubkey.toString()}
                 className=" py-2 hover:bg-gray-900 cursor-pointer"
-                onClick={() => handleMintSelect(account.mintAddress)}
+                onClick={() => handleMintSelect(account.data.parsed.info.mint)}
               >
-                <div className="font-medium">{account.mintAddress}</div>
+                <div className="font-medium">{pubkey.toString()}</div>
                 <div className="text-sm text-gray-500">
-                  Token Amount: {account.tokenAmount}
+                  Token Amount: {account.data.parsed.info.tokenAmount.uiAmount}
                 </div>
               </div>
             ))}
@@ -97,9 +96,8 @@ export function VestingdappCreate() {
         )}
       </div>
 
-      {/* Submit Button */}
       <button
-        className="btn btn-xs lg:btn-md btn-primary w-full"
+        className="btn lg:btn-md btn-primary w-full"
         onClick={() =>
           createVestingAccount.mutateAsync({
             companyName,
@@ -137,6 +135,10 @@ export function VestingdappList() {
       </div>
     );
   }
+  const userVestingAccounts = vestingAccounts.data?.filter(
+    (userAccount) =>
+      userAccount.account.owner.toBase58() === walletPublicKey?.toBase58()
+  );
   return (
     <div className="flex justify-center flex-col gap-4 mt-14">
       <Link
@@ -149,13 +151,10 @@ export function VestingdappList() {
       <div className={"space-y-6"}>
         {vestingAccounts.isLoading ? (
           <span className="loading loading-spinner loading-lg"></span>
-        ) : vestingAccounts.data?.find(
-            (ele) =>
-              ele.account.owner.toBase58() === walletPublicKey?.toBase58()
-          ) ? (
+        ) : userVestingAccounts?.length && userVestingAccounts.length > 0 ? (
           <div className="flex p-2 gap-4 flex-col overflow-y-auto h-[calc(100vh-340px)]">
             <PerfectScrollbar>
-              {vestingAccounts.data?.map((account) => (
+              {userVestingAccounts.map((account) => (
                 <VestingdappCard
                   key={account.publicKey.toString()}
                   account={account.publicKey}
@@ -254,7 +253,7 @@ function VestingdappCard({ account }: { account: PublicKey }) {
               />
             </div>
             <div className="flex-grow flex justify-center">
-              <button className="w-[90%] md:w-[50%] btn btn-xs lg:btn-md btn-outline flex">
+              <button className="w-[90%] md:w-[50%] btn lg:btn-md btn-outline flex">
                 Create Employee Vesting Account
               </button>
             </div>

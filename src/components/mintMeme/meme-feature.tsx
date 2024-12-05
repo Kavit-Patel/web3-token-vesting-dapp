@@ -28,10 +28,10 @@ export default function TokenMemeFeature() {
               label={ellipsify(programId.toString())}
             />
           </p>
-          <MemeTokenCreate />
+          <MemeTokenCreate publicKey={publicKey} />
         </AppHero>
       )}
-      {pathName === "/mint" && <MemeTokenList />}
+      {pathName === "/mint" && <MemeTokenList publicKey={publicKey} />}
     </div>
   ) : (
     <div className="max-w-4xl mx-auto">

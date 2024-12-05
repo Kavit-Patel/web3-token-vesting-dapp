@@ -72,16 +72,20 @@ const NavbarLinkList = ({
         </div>
       </li>
       <li className={`${showMenu ? " " : "ml-auto flex-1"}`}></li>
-      <li className="" onClick={(e) => e.stopPropagation()}>
-        <WalletButton />
-      </li>
-      <li
-        className=""
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <ClusterUiSelect setShowMenu={setShowMenu} />
+      <li>
+        <ul className="flex flex-col items-center md:flex-row gap-2">
+          <li className="" onClick={(e) => e.stopPropagation()}>
+            <WalletButton />
+          </li>
+          <li
+            className=""
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <ClusterUiSelect setShowMenu={setShowMenu} />
+          </li>
+        </ul>
       </li>
     </ul>
   );

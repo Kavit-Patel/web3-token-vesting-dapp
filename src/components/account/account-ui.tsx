@@ -55,9 +55,9 @@ export function AccountBalanceCheck({ address }: { address: PublicKey }) {
           is not found on this cluster.
         </span>
         <button
-          className="btn btn-xs btn-neutral"
+          className="btn btn-neutral"
           onClick={() =>
-            mutation.mutateAsync(1).catch((err) => console.log(err))
+            mutation.mutateAsync(3).catch((err) => console.log(err))
           }
         >
           Request Airdrop

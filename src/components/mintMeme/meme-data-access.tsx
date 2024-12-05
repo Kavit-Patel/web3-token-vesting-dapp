@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  useConnection,
-  WalletContextState,
-} from "@solana/wallet-adapter-react";
+import { WalletContextState } from "@solana/wallet-adapter-react";
 import {
   Connection,
   Keypair,
@@ -11,9 +8,7 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ITokenAccount } from "./types";
 import {
   createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
@@ -22,129 +17,105 @@ import {
   MINT_SIZE,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { useMutation } from "@tanstack/react-query";
+import { useTransactionToast } from "../ui/ui-layout";
+import { useRouter } from "next/navigation";
 
-export const createMintAndTokenAccount = async (
-  connection: Connection,
-  walletAdapter: WalletContextState,
-  tokenAmount: string | number | bigint | boolean
-) => {
-  try {
-    if (!walletAdapter || !walletAdapter.connected) {
-      throw new Error("Wallet not connected. Please connect your wallet.");
+export const useCreateMintAndTokenAccount = () => {
+  const transactionToast = useTransactionToast();
+  const createMintAndTokenAccount = useMutation<
+    { signature: string; mint: PublicKey; associatedTokenAccount: PublicKey },
+    Error,
+    {
+      connection: Connection;
+      walletAdapter: WalletContextState;
+      tokenAmount: number | bigint | string;
     }
+  >({
+    mutationKey: ["mintToken", "create"],
+    mutationFn: async ({ connection, walletAdapter, tokenAmount }) => {
+      if (!walletAdapter || !walletAdapter.connected) {
+        throw new Error("Wallet not connected. Please connect your wallet.");
+      }
 
-    const walletPublicKey = walletAdapter.publicKey;
-    if (!walletPublicKey) {
-      toast.error("Connect Wallet first !");
-      return;
-    }
-    const mint = Keypair.generate();
-    const associatedTokenAccount = await getAssociatedTokenAddress(
-      mint.publicKey,
-      walletPublicKey
-    );
+      const walletPublicKey = walletAdapter.publicKey;
+      if (!walletPublicKey) {
+        throw new Error("Wallet public key not available.");
+      }
 
-    const { blockhash } = await connection.getLatestBlockhash();
-    const transaction = new Transaction({
-      recentBlockhash: blockhash,
-      feePayer: walletPublicKey,
-    });
-
-    const mintRent = await connection.getMinimumBalanceForRentExemption(
-      MINT_SIZE
-    );
-
-    const decimals = 9;
-    const mintAmount = BigInt(tokenAmount) * BigInt(10 ** decimals);
-
-    transaction.add(
-      SystemProgram.createAccount({
-        fromPubkey: walletPublicKey,
-        newAccountPubkey: mint.publicKey,
-        lamports: mintRent,
-        space: MINT_SIZE,
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      createInitializeMintInstruction(
+      const mint = Keypair.generate();
+      const associatedTokenAccount = await getAssociatedTokenAddress(
         mint.publicKey,
-        decimals,
-        walletPublicKey,
         walletPublicKey
-      ),
-      createAssociatedTokenAccountInstruction(
-        walletPublicKey,
-        associatedTokenAccount,
-        walletPublicKey,
-        mint.publicKey
-      ),
-      createMintToInstruction(
-        mint.publicKey,
-        associatedTokenAccount,
-        walletPublicKey,
-        mintAmount
-      )
-    );
+      );
 
-    transaction.partialSign(mint);
-    const signature = await walletAdapter.sendTransaction(
-      transaction,
-      connection,
-      {
-        skipPreflight: false,
+      const { blockhash } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: walletPublicKey,
+      });
+
+      const mintRent = await connection.getMinimumBalanceForRentExemption(
+        MINT_SIZE
+      );
+      const decimals = 9;
+      const mintAmount = BigInt(tokenAmount) * BigInt(10 ** decimals);
+
+      transaction.add(
+        SystemProgram.createAccount({
+          fromPubkey: walletPublicKey,
+          newAccountPubkey: mint.publicKey,
+          lamports: mintRent,
+          space: MINT_SIZE,
+          programId: TOKEN_PROGRAM_ID,
+        }),
+        createInitializeMintInstruction(
+          mint.publicKey,
+          decimals,
+          walletPublicKey,
+          walletPublicKey
+        ),
+        createAssociatedTokenAccountInstruction(
+          walletPublicKey,
+          associatedTokenAccount,
+          walletPublicKey,
+          mint.publicKey
+        ),
+        createMintToInstruction(
+          mint.publicKey,
+          associatedTokenAccount,
+          walletPublicKey,
+          mintAmount
+        )
+      );
+
+      transaction.partialSign(mint);
+
+      if (!walletAdapter.signTransaction) {
+        toast.error(
+          "The wallet adapter does not support signing transactions."
+        );
+        throw new Error(
+          "The wallet adapter does not support signing transactions."
+        );
       }
-    );
-    toast.success("Token Created Successfully !" + signature);
-    return { signature, mint: mint.publicKey, associatedTokenAccount };
-  } catch (error) {
-    console.error("Error creating mint token:", error);
-    throw error;
-  }
+      const signedTransaction = await walletAdapter.signTransaction(
+        transaction
+      );
+      const signature = await connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+        }
+      );
+      return { signature, mint: mint.publicKey, associatedTokenAccount };
+    },
+    onSuccess: async ({ signature }) => {
+      transactionToast(signature);
+    },
+    onError: (error) => {
+      toast.error(`Failed to create mint token: ${error.message}`);
+    },
+  });
+  return { createMintAndTokenAccount };
 };
-
-export function useTokenAccounts(currentWallet: PublicKey) {
-  const { connection } = useConnection();
-  const [tokenAccounts, setTokenAccounts] = useState<ITokenAccount[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const walletAddress = new PublicKey(currentWallet);
-  useEffect(() => {
-    if (!walletAddress) {
-      setTokenAccounts([]);
-      return;
-    }
-    const fetchTokenAccounts = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const ownerPublicKey = walletAddress;
-        const tokenAccountsResponse =
-          await connection.getParsedTokenAccountsByOwner(ownerPublicKey, {
-            programId: new PublicKey(
-              "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-            ),
-          });
-
-        const accounts = tokenAccountsResponse.value.map((accountInfo) => {
-          const accountData = accountInfo.account.data.parsed.info;
-          return {
-            mintAddress: accountData.mint,
-            tokenAccount: accountInfo.pubkey.toString(),
-            tokenAmount: accountData.tokenAmount.uiAmount,
-          };
-        });
-
-        setTokenAccounts(accounts);
-      } catch (err) {
-        console.error("Error fetching token accounts:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTokenAccounts();
-  }, [walletAddress]);
-
-  return { tokenAccounts, loading, error };
-}
