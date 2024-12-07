@@ -1,94 +1,55 @@
-# dapp-token-vesting
+📊 Token Vesting Program
+A Solana blockchain-based platform that allows companies to create and manage tokens, set up token vesting programs for employees, and enable employees to claim their vested tokens.
 
-## Getting Started
+🚀 Live Deployment
+The backend is live and accessible at: [Data Statistics Backend](https://web3-token-vesting-dapp.vercel.app/)
 
-### Prerequisites
+Features
+For Companies:
+Create tokens with an initial token amount.
+Set up token vesting programs.
+Add employees to vesting schedules with allocation management.
+Secure transaction signing with Phantom Wallet.
+For Employees:
+Claim vested tokens securely.
+View vesting schedules and real-time token balances.
+Responsive UI for both desktop and mobile.
 
-- Node v18.18.0 or higher
+Tech Stack
+Frontend: Next.js, Tailwind CSS, Phantom Wallet Adapter
+Backend: Solana Blockchain
 
-- Rust v1.77.2 or higher
-- Anchor CLI 0.30.1 or higher
-- Solana CLI 1.18.17 or higher
+Setup
+Clone the repository: git clone https://github.com/Kavit-Patel/web3-token-vesting-dapp
+cd web3-token-vesting-dapp
+Install dependencies: npm install
+npm run dev
+Visit http://localhost:3000 in your browser.
 
-### Installation
+Usage
+For Companies:
+Connect your Phantom Wallet.
+Create tokens and vesting programs.
+Add employees to vesting schedules.
+For Employees:
+Connect your Phantom Wallet.
+Claim tokens as they vest.
+Current Progress
+✅ Token Creation: Functional
+✅ Vesting Program Setup: Functional
+✅ Adding Employees to Vesting Program: Functional
+🚧 Employee Token Claiming: In Progress
 
-#### Clone the repo
+Contributing
+Fork the repository.
+Create a new branch: git checkout -b feature/new-feature
+Commit and push changes: git commit -m "Add new feature"
+git push origin feature/new-feature
+Open a pull request.
 
-```shell
-git clone <repo-url>
-cd <repo-name>
-```
+License
+This project is licensed under the MIT License.
 
-#### Install Dependencies
-
-```shell
-pnpm install
-```
-
-#### Start the web app
-
-```
-pnpm dev
-```
-
-## Apps
-
-### anchor
-
-This is a Solana program written in Rust using the Anchor framework.
-
-#### Commands
-
-You can use any normal anchor commands. Either move to the `anchor` directory and run the `anchor` command or prefix the command with `pnpm`, eg: `pnpm anchor`.
-
-#### Sync the program id:
-
-Running this command will create a new keypair in the `anchor/target/deploy` directory and save the address to the Anchor config file and update the `declare_id!` macro in the `./src/lib.rs` file of the program.
-
-You will manually need to update the constant in `anchor/lib/counter-exports.ts` to match the new program id.
-
-```shell
-pnpm anchor keys sync
-```
-
-#### Build the program:
-
-```shell
-pnpm anchor-build
-```
-
-#### Start the test validator with the program deployed:
-
-```shell
-pnpm anchor-localnet
-```
-
-#### Run the tests
-
-```shell
-pnpm anchor-test
-```
-
-#### Deploy to Devnet
-
-```shell
-pnpm anchor deploy --provider.cluster devnet
-```
-
-### web
-
-This is a React app that uses the Anchor generated client to interact with the Solana program.
-
-#### Commands
-
-Start the web app
-
-```shell
-pnpm dev
-```
-
-Build the web app
-
-```shell
-pnpm build
-```
+Contact
+Created by Kavit Patel.
+Live Demo : https://web3-token-vesting-dapp.vercel.app/

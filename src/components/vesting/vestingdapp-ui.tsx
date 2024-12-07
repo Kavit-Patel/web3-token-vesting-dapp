@@ -13,6 +13,8 @@ import Link from "next/link";
 import PerfectScrollbar from "react-perfect-scrollbar";
 import "react-perfect-scrollbar/dist/css/styles.css";
 import { useGetTokenAccounts } from "../account/account-data-access";
+import { ellipsify } from "../ui/ui-layout";
+import { ExplorerLink } from "../cluster/cluster-ui";
 export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
   const { createVestingAccount } = useVesting();
   const tokenAccountsQuery = useGetTokenAccounts({ address: publicKey });
@@ -202,7 +204,12 @@ function VestingdappCard({ account }: { account: PublicKey }) {
             >
               {companyName}
             </h2>
-            <span className="text-xs text-gray-500">{account.toBase58()}</span>
+            <span className="text-xs text-gray-500">
+              <ExplorerLink
+                label={ellipsify(account.toString())}
+                path={`account/${account.toString()}`}
+              />
+            </span>
           </div>
           <div className="flex justify-center flex-col gap-4">
             <div className=" flex flex-col md:flex-row justify-center gap-4">
