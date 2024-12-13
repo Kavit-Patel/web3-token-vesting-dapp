@@ -16,6 +16,10 @@ const links: { label: string; path: string }[] = [
 const companyLinks: { label: string; path: string }[] = [
   { label: "Token Program", path: "/mint" },
   { label: "Vesting Program", path: "/dapptokenvesting" },
+  { label: "Vested Employees", path: "/vestedemployees" },
+];
+const employeeLinks: { label: string; path: string }[] = [
+  { label: "Claim Token - IN FUTURE", path: "#" },
 ];
 
 export default function RootLayout({
@@ -33,7 +37,11 @@ export default function RootLayout({
         <ReactQueryProvider>
           <ClusterProvider>
             <SolanaProvider>
-              <UiLayout links={links} companyLinks={companyLinks}>
+              <UiLayout
+                links={links}
+                companyLinks={companyLinks}
+                employeeLinks={employeeLinks}
+              >
                 {children}
               </UiLayout>
             </SolanaProvider>

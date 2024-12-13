@@ -4,6 +4,8 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useMemo, useState } from "react";
 import { useCommonProgram } from "../common/common-data-access";
 import {
+  useCreateEmployeeVesting,
+  useFetchVestedEmployees,
   useVesting,
   useVestingdappProgramAccount,
 } from "./vestingdapp-data-access";
@@ -12,9 +14,14 @@ import Loader from "../common/common-loader";
 import Link from "next/link";
 import PerfectScrollbar from "react-perfect-scrollbar";
 import "react-perfect-scrollbar/dist/css/styles.css";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css";
 import { useGetTokenAccounts } from "../account/account-data-access";
 import { ellipsify } from "../ui/ui-layout";
 import { ExplorerLink } from "../cluster/cluster-ui";
+import { IEmployeeVesting } from "./vesting-types";
+import { unixTimeStarmp } from "../common/common-utils";
+import toast from "react-hot-toast";
 export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
   const { createVestingAccount } = useVesting();
   const tokenAccountsQuery = useGetTokenAccounts({ address: publicKey });
@@ -176,13 +183,13 @@ export function VestingdappList() {
 }
 
 function VestingdappCard({ account }: { account: PublicKey }) {
-  const { walletPublicKey } = useCommonProgram();
   const { vestingAccountQuery } = useVestingdappProgramAccount({
     account,
   });
-  const [startTime, setStartTime] = useState(0);
-  const [endTime, setEndTime] = useState(0);
-  const [cliffTime, setCliffTime] = useState(0);
+  const { createEmployeeAccount } = useCreateEmployeeVesting();
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [cliffTime, setCliffTime] = useState<Date | null>(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [beneficiary, setBeneficiary] = useState("");
   const [vestingAccount, setVestingAccount] = useState(account.toBase58());
@@ -213,26 +220,42 @@ function VestingdappCard({ account }: { account: PublicKey }) {
           </div>
           <div className="flex justify-center flex-col gap-4">
             <div className=" flex flex-col md:flex-row justify-center gap-4">
-              <input
-                type="text"
-                placeholder="Start Time"
+              <Flatpickr
+                data-enable-time
                 value={startTime || ""}
-                onChange={(e) => setStartTime(parseInt(e.target.value))}
-                className="input input-bordered w-full max-w-xs"
+                onChange={(start) => setStartTime(start[0])}
+                options={{
+                  enableTime: true,
+                  dateFormat: "Y-m-d H:i",
+                  disableMobile: true,
+                }}
+                className=" input input-bordered w-full max-w-xs px-2 py-1 "
+                placeholder="Vesting Start Time"
               />
-              <input
-                type="text"
-                placeholder="End Time"
+              <Flatpickr
+                data-enable-time
                 value={endTime || ""}
-                onChange={(e) => setEndTime(parseInt(e.target.value))}
-                className="input input-bordered w-full max-w-xs"
+                onChange={(end) => setEndTime(end[0])}
+                options={{
+                  enableTime: true,
+                  dateFormat: "Y-m-d H:i",
+                  disableMobile: true,
+                }}
+                className="input input-bordered w-full max-w-xs px-2 py-1"
+                placeholder="Vesting End Time"
               />
-              <input
-                type="text"
-                placeholder="Cliff Time"
+              <Flatpickr
+                data-enable-time
                 value={cliffTime || ""}
-                onChange={(e) => setCliffTime(parseInt(e.target.value))}
-                className="input input-bordered w-full max-w-xs"
+                onChange={(cliff) => setCliffTime(cliff[0])}
+                options={{
+                  enableTime: true,
+                  dateFormat: "Y-m-d H:i",
+                  disableMobile: true,
+                }}
+                className=" input input-bordered w-full max-w-xs px-2 py-1"
+                placeholder="Vesting Cliff Time"
+                type="text"
               />
             </div>
             <div className=" flex flex-col md:flex-row justify-center gap-4">
@@ -260,12 +283,243 @@ function VestingdappCard({ account }: { account: PublicKey }) {
               />
             </div>
             <div className="flex-grow flex justify-center">
-              <button className="w-[90%] md:w-[50%] btn lg:btn-md btn-outline flex">
-                Create Employee Vesting Account
+              <button
+                className="w-[90%] md:w-[50%] btn lg:btn-md btn-outline flex"
+                onClick={() => {
+                  if (!startTime || !endTime || !cliffTime) {
+                    toast.error("Select Time !");
+                    return;
+                  }
+                  createEmployeeAccount.mutateAsync({
+                    startTime: new BN(unixTimeStarmp(startTime)),
+                    endTime: new BN(unixTimeStarmp(endTime)),
+                    totalAmount: new BN(totalAmount),
+                    cliffTime: new BN(unixTimeStarmp(cliffTime)),
+                    beneficiary: new PublicKey(beneficiary),
+                    vestingAccount: account,
+                  });
+                }}
+                disabled={createEmployeeAccount.isPending}
+              >
+                {createEmployeeAccount.isPending ? (
+                  <Loader width={40} height={40} color="gray-900" />
+                ) : (
+                  "Create Employee Vesting Account"
+                )}
               </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function EmployeeProgramList() {
+  const { employeeAccountsQuery } = useFetchVestedEmployees();
+
+  if (employeeAccountsQuery.isLoading) {
+    return <span className="loading loading-spinner loading-lg"></span>;
+  }
+  if (
+    !employeeAccountsQuery.isLoading &&
+    (!employeeAccountsQuery.data || employeeAccountsQuery.data.length === 0)
+  ) {
+    return (
+      <div className=" flex flex-col justify-center mt-24">
+        <Link
+          href="/dapptokenvesting"
+          className="mb-8 w-full text-center font-semibold border border-gray-500 rounded-md px-4 py-2 transition-all hover:bg-gray-700 active:scale-95 md:text-xl"
+        >
+          Add Employee to Vesting Program
+        </Link>
+        <span className="w-full text-center">
+          Your dont have any employee vesting accounts.
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className={"space-y-6"}>
+      {employeeAccountsQuery.isLoading ? (
+        <span className="loading loading-spinner loading-lg flex justify-center items-center h-96"></span>
+      ) : employeeAccountsQuery.error ? (
+        <span className="text-xl">
+          Error occured whicle fetching employee vesting accounts.
+        </span>
+      ) : employeeAccountsQuery.data ? (
+        <div className="max-w-[100vw-200px]">
+          <EmployeeProgramCard employeeAccounts={employeeAccountsQuery.data} />
+        </div>
+      ) : (
+        <div className="text-center">
+          <h2 className={"text-2xl"}>No accounts</h2>
+          No accounts found. Create one above to get started.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmployeeProgramCard({
+  employeeAccounts,
+}: {
+  employeeAccounts: IEmployeeVesting[];
+}) {
+  return (
+    <div className="flex justify-center flex-col gap-4 mt-8">
+      {employeeAccounts.length === 0 && (
+        <Link
+          href="/dapptokenvesting"
+          className=" text-center font-semibold border border-gray-500 rounded-md px-4 py-2 transition-all hover:bg-gray-700 active:scale-95 md:text-xl"
+        >
+          Add Employee to Vesting Account
+        </Link>
+      )}
+      <div className="container mx-auto">
+        <div className="md:relative flex flex-col-reverse gap-4">
+          <h1 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-12 text-center">
+            Employees Vesting Account List
+          </h1>
+          <Link
+            className="md:absolute top-12 right-0 text-center font-semibold rounded-md px-4 py-2 transition-all hover:bg-gray-700 active:scale-95 text-sm"
+            href="/dapptokenvesting"
+          >
+            {window.innerWidth < 1023 || employeeAccounts.length === 1
+              ? "+ Add New"
+              : "+ Add New Employee"}
+          </Link>
+        </div>
+        {employeeAccounts.length > 0 ? (
+          <div className="w-full overflow-y-auto h-[calc(100vh-250px)]">
+            <PerfectScrollbar>
+              <div
+                className={`grid gap-6 w-full ${
+                  employeeAccounts.length === 1
+                    ? "grid-cols-1 justify-center"
+                    : employeeAccounts.length === 2
+                    ? "grid-cols-1 md:grid-cols-2 justify-center"
+                    : employeeAccounts.length === 3
+                    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 justify-center"
+                    : "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                }`}
+              >
+                {employeeAccounts.map((employeeAccount) => (
+                  <div
+                    key={employeeAccount.pda}
+                    className="w-full bg-gray-800 border border-gray-700 shadow-lg rounded-lg p-3 md:p-6 hover:shadow-xl hover:bg-gray-700 transition-all duration-300"
+                  >
+                    <div className="mb-2">
+                      <h2 className="text-lg font-semibold text-blue-400 mb-2">
+                        Employee Account
+                      </h2>
+                      <p className="text-sm text-gray-300 break-all h-10">
+                        {employeeAccount.pda}
+                      </p>
+                    </div>
+                    <div className="mb-2">
+                      <h2 className="text-lg font-semibold text-blue-400 mb-2">
+                        Employee Wallet
+                      </h2>
+                      <p className="text-sm text-gray-300 break-all h-10">
+                        {employeeAccount.beneficiary}
+                      </p>
+                    </div>
+                    <div className="mb-2">
+                      <h2 className="text-lg font-semibold text-blue-400 mb-2">
+                        Vesting Account
+                      </h2>
+                      <p className="text-sm text-gray-300 break-all h-10">
+                        {employeeAccount.vestingAccount}
+                      </p>
+                    </div>
+                    <div className="mb-2">
+                      <h2 className="text-lg font-semibold text-blue-400 mb-2">
+                        Token
+                      </h2>
+                      <p className="text-sm text-gray-300 break-all h-10">
+                        {employeeAccount.token}
+                      </p>
+                    </div>
+                    <div className="mb-2">
+                      <h2 className="text-lg font-semibold text-blue-400 mb-2">
+                        Treasury Account
+                      </h2>
+                      <p className="text-sm text-gray-300 break-all h-10">
+                        {employeeAccount.treasuryTokenAccount}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          Start
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {new Date(
+                            employeeAccount.startTime * 1000
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          Cliff
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {new Date(
+                            employeeAccount.cliffTime * 1000
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          End
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {new Date(
+                            employeeAccount.endTime * 1000
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          Total
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {employeeAccount.totalAmount}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          company
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {employeeAccount.companyName}
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-400">
+                          Withdrawn
+                        </h3>
+                        <p className="text-xs text-gray-300">
+                          {employeeAccount.totalWithdrawn}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PerfectScrollbar>
+          </div>
+        ) : (
+          <p className="text-gray-600 text-center">
+            No employee vesting accounts found.
+          </p>
+        )}
       </div>
     </div>
   );

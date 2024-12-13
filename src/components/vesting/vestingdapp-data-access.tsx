@@ -5,10 +5,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useCluster } from "../cluster/cluster-data-access";
 import { useTransactionToast } from "../ui/ui-layout";
-import { ICreateVesting } from "./vesting-types";
+import { ICreateEmployee, ICreateVesting } from "./vesting-types";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useCommonProgram } from "../common/common-data-access";
 import { useRouter } from "next/navigation";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 export function useVesting() {
   const router = useRouter();
@@ -58,5 +59,117 @@ export function useVestingdappProgramAccount({
 
   return {
     vestingAccountQuery,
+  };
+}
+
+export function useCreateEmployeeVesting() {
+  const router = useRouter();
+  const { cluster, program, programId, getProgramAccount } = useCommonProgram();
+  const transactionToast = useTransactionToast();
+  const createEmployeeAccount = useMutation<string, Error, ICreateEmployee>({
+    mutationKey: ["employeeAccount", "create", { cluster }],
+    mutationFn: async ({
+      startTime,
+      endTime,
+      totalAmount,
+      cliffTime,
+      beneficiary,
+      vestingAccount,
+    }) =>
+      program.methods
+        .createEmployeeVesting(startTime, endTime, totalAmount, cliffTime)
+        .accounts({
+          beneficiary,
+          vestingAccount,
+        })
+        .rpc(),
+    onSuccess: (signature) => {
+      transactionToast(signature);
+      router.push("/vestedemployees");
+    },
+    onError: () => toast.error("Failed to create employee account"),
+  });
+
+  return {
+    createEmployeeAccount,
+  };
+}
+
+export function useFetchVestedEmployees() {
+  const { vestingAccounts } = useVesting();
+  const { cluster } = useCluster();
+  const { programId, walletPublicKey } = useCommonProgram();
+  const { connection } = useConnection();
+  const employeeAccountsQuery = useQuery({
+    queryKey: [
+      "employeeAccounts",
+      "fetch",
+      { cluster, vestingAccounts: vestingAccounts.data },
+    ],
+    queryFn: async () => {
+      await vestingAccounts.refetch();
+      if (!vestingAccounts.data) {
+        return [];
+      }
+      const employeeAccountsDetails = await Promise.all(
+        vestingAccounts.data.map(async (vestingAccount) => {
+          if (
+            vestingAccount.account.owner.toBase58() ===
+            walletPublicKey?.toBase58()
+          ) {
+            const EmployeeAccounts = await connection.getProgramAccounts(
+              programId,
+              {
+                filters: [
+                  {
+                    memcmp: {
+                      offset: 80,
+                      bytes: vestingAccount.publicKey.toBase58(),
+                    },
+                  },
+                ],
+              }
+            );
+            const modifiedEmployeeAccounts = EmployeeAccounts.map((empAcc) => ({
+              ...empAcc,
+              treasuryTokenAccount: vestingAccount.account.treasuryTokenAccount,
+              companyName: vestingAccount.account.companyName,
+              token: vestingAccount.account.mint,
+            }));
+            return modifiedEmployeeAccounts;
+          }
+          return [];
+        })
+      );
+      const employeeAccounts = employeeAccountsDetails.flat().map((empAcc) => {
+        const buffer = Buffer.from(empAcc.account.data);
+        const discriminator = buffer.slice(0, 8);
+        const beneficiary = new PublicKey(buffer.slice(8, 40)).toBase58();
+        const startTime = Number(buffer.readBigInt64LE(40));
+        const endTime = Number(buffer.readBigInt64LE(48));
+        const totalAmount = Number(buffer.readBigInt64LE(56));
+        const totalWithdrawn = Number(buffer.readBigInt64LE(64));
+        const cliffTime = Number(buffer.readBigInt64LE(72));
+        const vestingAccount = new PublicKey(buffer.slice(80, 112)).toBase58();
+        const bump = buffer.readUInt8(112);
+        return {
+          beneficiary,
+          startTime,
+          endTime,
+          cliffTime,
+          totalAmount,
+          totalWithdrawn,
+          vestingAccount,
+          companyName: empAcc.companyName,
+          treasuryTokenAccount: empAcc.treasuryTokenAccount.toBase58(),
+          token: empAcc.token.toBase58(),
+          pda: empAcc.pubkey.toBase58(),
+        };
+      });
+      return employeeAccounts;
+    },
+  });
+  return {
+    employeeAccountsQuery,
   };
 }

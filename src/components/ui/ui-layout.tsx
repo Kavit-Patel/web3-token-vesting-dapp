@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import * as React from "react";
 import { ReactNode, Suspense, useEffect, useRef } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -15,10 +14,12 @@ export function UiLayout({
   children,
   links,
   companyLinks,
+  employeeLinks,
 }: {
   children: ReactNode;
   links: { label: string; path: string }[];
   companyLinks: { label: string; path: string }[];
+  employeeLinks: { label: string; path: string }[];
 }) {
   const [showMenu, setShowMenu] = React.useState<boolean>(false);
   return (
@@ -38,6 +39,7 @@ export function UiLayout({
           <NavbarLinkList
             links={links}
             companyLinks={companyLinks}
+            employeeLinks={employeeLinks}
             showMenu={showMenu}
             setShowMenu={setShowMenu}
           />
@@ -58,7 +60,7 @@ export function UiLayout({
         </Suspense>
         <Toaster position="bottom-right" />
       </div>
-      <footer className="footer footer-center p-4 bg-base-300 text-base-content">
+      <footer className="footer footer-center p-2 md:p-4 bg-base-300 text-xs md:text-base-content">
         <aside>
           <p>
             Created by{" "}

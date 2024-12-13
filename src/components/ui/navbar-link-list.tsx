@@ -8,11 +8,13 @@ import { SetStateAction } from "jotai";
 const NavbarLinkList = ({
   links,
   companyLinks,
+  employeeLinks,
   showMenu,
   setShowMenu,
 }: {
   links: { label: string; path: string }[];
   companyLinks: { label: string; path: string }[];
+  employeeLinks: { label: string; path: string }[];
   showMenu: boolean;
   setShowMenu: React.Dispatch<SetStateAction<boolean>>;
 }) => {
@@ -56,6 +58,29 @@ const NavbarLinkList = ({
             className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4 absolute -left-28 top-10"
           >
             {companyLinks.map(({ label, path }) => (
+              <li key={path}>
+                <Link
+                  onClick={() => setShowMenu(false)}
+                  href={path}
+                  className={`btn btn-sm ${
+                    pathname.startsWith(path) ? "btn-primary" : "btn-ghost"
+                  }`}
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </li>
+      <li className="" onClick={(e) => e.stopPropagation()}>
+        <div className="dropdown dropdown-end relative hover:cursor-pointer">
+          <div tabIndex={0}>Employee</div>
+          <ul
+            tabIndex={0}
+            className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4 absolute -left-28 top-10"
+          >
+            {employeeLinks.map(({ label, path }) => (
               <li key={path}>
                 <Link
                   onClick={() => setShowMenu(false)}
