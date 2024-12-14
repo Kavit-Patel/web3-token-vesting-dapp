@@ -132,7 +132,11 @@ export function VestingdappList() {
   const { getProgramAccount, walletPublicKey } = useCommonProgram();
   const { vestingAccounts } = useVesting();
   if (getProgramAccount.isLoading) {
-    return <span className="loading loading-spinner loading-lg"></span>;
+    return (
+      <div className="w-screen h-96 flex justify-center items-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
   }
   if (!getProgramAccount.data?.value) {
     return (
@@ -159,7 +163,9 @@ export function VestingdappList() {
       <h2 className="w-full text-center text-lg">Vesting Program List</h2>
       <div className={"space-y-6"}>
         {vestingAccounts.isLoading ? (
-          <span className="loading loading-spinner loading-lg"></span>
+          <div className="w-screen h-96 flex justify-center items-center">
+            <span className="loading loading-spinner loading-lg"></span>
+          </div>
         ) : userVestingAccounts?.length && userVestingAccounts.length > 0 ? (
           <div className="flex p-2 gap-4 flex-col overflow-y-auto h-[calc(100vh-340px)]">
             <PerfectScrollbar>
@@ -199,7 +205,9 @@ function VestingdappCard({ account }: { account: PublicKey }) {
     [vestingAccountQuery.data?.companyName]
   );
   return vestingAccountQuery.isLoading ? (
-    <span className="loading loading-spinner loading-lg"></span>
+    <div className="w-screen h-96 flex justify-center items-center">
+      <span className="loading loading-spinner loading-lg"></span>
+    </div>
   ) : (
     <div className="card card-bordered border-base-300 border-4 text-neutral-content ">
       <div className="card-body items-center text-center">
@@ -319,7 +327,11 @@ export function EmployeeProgramList() {
   const { employeeAccountsQuery } = useFetchVestedEmployees();
 
   if (employeeAccountsQuery.isLoading) {
-    return <span className="loading loading-spinner loading-lg"></span>;
+    return (
+      <div className="w-screen h-96 flex justify-center items-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
   }
   if (
     !employeeAccountsQuery.isLoading &&
@@ -342,7 +354,9 @@ export function EmployeeProgramList() {
   return (
     <div className={"space-y-6"}>
       {employeeAccountsQuery.isLoading ? (
-        <span className="loading loading-spinner loading-lg flex justify-center items-center h-96"></span>
+        <div className="w-screen h-96 flex justify-center items-center">
+          <span className="loading loading-spinner loading-lg flex justify-center items-center h-96"></span>
+        </div>
       ) : employeeAccountsQuery.error ? (
         <span className="text-xl">
           Error occured whicle fetching employee vesting accounts.
@@ -361,7 +375,7 @@ export function EmployeeProgramList() {
   );
 }
 
-function EmployeeProgramCard({
+export function EmployeeProgramCard({
   employeeAccounts,
 }: {
   employeeAccounts: IEmployeeVesting[];

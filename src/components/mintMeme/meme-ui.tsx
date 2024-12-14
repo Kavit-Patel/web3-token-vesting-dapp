@@ -87,7 +87,9 @@ export function MemeTokenList({ publicKey }: { publicKey: PublicKey }) {
   return (
     <div className={"space-y-6"}>
       {query.isPending ? (
-        <span className="loading loading-spinner loading-lg flex justify-center items-center h-96"></span>
+        <div className="w-screen h-96 flex justify-center items-center">
+          <span className="loading loading-spinner loading-lg flex justify-center items-center h-96"></span>
+        </div>
       ) : tokenAccounts && tokenAccounts?.length > 0 ? (
         <MemeTokenCard account={tokenAccounts} />
       ) : (
