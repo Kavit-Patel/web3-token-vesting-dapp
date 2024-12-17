@@ -6,10 +6,15 @@ import { PublicKey } from "@solana/web3.js";
 import { useEmployee } from "./employee-data-access";
 import { IoMdRefresh } from "react-icons/io";
 import { useEffect, useState } from "react";
+import { IClaimTokens, IEmployeeVesting } from "./employee-types";
+import Loader from "../common/common-loader";
 
 export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
-  const { employeeAccounts: employeeAccountsQuery, calculateClaimableTokens } =
-    useEmployee(publicKey);
+  const {
+    employeeAccounts: employeeAccountsQuery,
+    calculateClaimableTokens,
+    claimTokens,
+  } = useEmployee(publicKey);
 
   if (employeeAccountsQuery.isLoading) {
     return (
@@ -45,6 +50,7 @@ export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
           <EmployeeProgramCard
             employeeAccounts={employeeAccountsQuery.data}
             claimableTokens={calculateClaimableTokens}
+            claimTokens={claimTokens.mutateAsync}
           />
         </div>
       ) : (
@@ -57,21 +63,10 @@ export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
   );
 }
 
-interface IEmployeeVesting {
-  pda: string;
-  beneficiary: string;
-  token: string;
-  startTime: number;
-  endTime: number;
-  cliffTime: number;
-  totalAmount: number;
-  totalWithdrawn: number;
-  companyName: string;
-}
-
 function EmployeeProgramCard({
   employeeAccounts,
   claimableTokens,
+  claimTokens,
 }: {
   employeeAccounts: IEmployeeVesting[];
   claimableTokens: (
@@ -82,25 +77,41 @@ function EmployeeProgramCard({
     totalWithdrawn: number,
     currentTime: number
   ) => number;
+  claimTokens: ({
+    companyName,
+    vestingAccountPubkey,
+    employeeAccountPubkey,
+    mintPubkey,
+    treasuryTokenAccountPubkey,
+  }: IClaimTokens) => void;
 }) {
   const [claimableTokenMap, setClaimableTokenMap] = useState<{
     [key: string]: string;
   }>({});
-
+  const [claimTokenLoading, setClaimTokenLoading] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [claimingState, setClaimingState] = useState<boolean>(false);
   useEffect(() => {
-    const initialClaimableTokens: { [key: string]: string } = {};
-    employeeAccounts.forEach((employeeAccount) => {
-      const currentClaimableTokens = claimableTokens(
-        employeeAccount.startTime,
-        employeeAccount.endTime,
-        employeeAccount.cliffTime,
-        employeeAccount.totalAmount,
-        employeeAccount.totalWithdrawn,
-        Math.floor(Date.now() / 1000) // Current time in seconds
-      ).toFixed(2);
-      initialClaimableTokens[employeeAccount.pda] = currentClaimableTokens;
-    });
-    setClaimableTokenMap(initialClaimableTokens);
+    if (!claimingState) {
+      const initialClaimableTokens: { [key: string]: string } = {};
+      const initialClaimLoading: { [key: string]: boolean } = {};
+      employeeAccounts.forEach((employeeAccount) => {
+        setClaimTokenLoading({ [employeeAccount.pda]: false });
+        const currentClaimableTokens = claimableTokens(
+          employeeAccount.startTime,
+          employeeAccount.endTime,
+          employeeAccount.cliffTime,
+          employeeAccount.totalAmount,
+          employeeAccount.totalWithdrawn,
+          Math.floor(Date.now() / 1000) // Current time in seconds
+        ).toFixed(2);
+        initialClaimableTokens[employeeAccount.pda] = currentClaimableTokens;
+        initialClaimLoading[employeeAccount.pda] = false;
+      });
+      setClaimableTokenMap(initialClaimableTokens);
+      setClaimTokenLoading(initialClaimLoading);
+    }
   }, [employeeAccounts, claimableTokens]);
 
   const refreshClaimableTokens = (
@@ -251,16 +262,52 @@ function EmployeeProgramCard({
                         </span>
                       </p>
                     </div>
-                    <div
-                      onClick={() =>
-                        alert(
-                          "Feature under development process ! wait for 1 day ..."
-                        )
+                    <button
+                      onClick={async () => {
+                        try {
+                          setClaimingState(true);
+                          setClaimTokenLoading((prev) => ({
+                            ...prev,
+                            [employeeAccount.pda]: true,
+                          }));
+                          await claimTokens({
+                            companyName: employeeAccount.companyName,
+                            vestingAccountPubkey: new PublicKey(
+                              employeeAccount.vestingAccount
+                            ),
+                            employeeAccountPubkey: new PublicKey(
+                              employeeAccount.pda
+                            ),
+                            mintPubkey: new PublicKey(employeeAccount.token),
+                            treasuryTokenAccountPubkey: new PublicKey(
+                              employeeAccount.treasuryTokenAccount
+                            ),
+                          });
+                        } catch (error) {
+                          console.log("Error :", error);
+                        } finally {
+                          setClaimingState(false);
+                        }
+                      }}
+                      className={`cursor-pointer w-full text-center font-semibold border border-gray-500 rounded-md px-4 py-2  md:text-xl ${
+                        parseInt(claimableTokenMap[employeeAccount.pda]) === 0
+                          ? " bg-gray-800 "
+                          : " transition-all hover:bg-gray-800 active:scale-95"
+                      }`}
+                      disabled={
+                        claimTokenLoading[employeeAccount.pda] ||
+                        parseInt(claimableTokenMap[employeeAccount.pda]) === 0
                       }
-                      className="cursor-pointer w-full text-center font-semibold border border-gray-500 rounded-md px-4 py-2 transition-all hover:bg-gray-800 active:scale-95 md:text-xl"
                     >
-                      Claim Tokens
-                    </div>
+                      {claimTokenLoading[employeeAccount.pda] ? (
+                        <Loader width={35} height={35} color="gray-900" />
+                      ) : parseInt(claimableTokenMap[employeeAccount.pda]) ===
+                        0 ? (
+                        "Nothing To Claim"
+                      ) : (
+                        "Claim Your Token"
+                      )}
+                    </button>
                   </div>
                 ))}
               </div>

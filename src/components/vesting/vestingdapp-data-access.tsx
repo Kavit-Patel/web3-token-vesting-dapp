@@ -6,10 +6,11 @@ import toast from "react-hot-toast";
 import { useCluster } from "../cluster/cluster-data-access";
 import { useTransactionToast } from "../ui/ui-layout";
 import { ICreateEmployee, ICreateVesting } from "./vesting-types";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAccount, getMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useCommonProgram } from "../common/common-data-access";
 import { useRouter } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
+import { IEmployeeVesting } from "../employee/employee-types";
 
 export function useVesting() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export function useVestingdappProgramAccount({
 
 export function useCreateEmployeeVesting() {
   const router = useRouter();
-  const { cluster, program, programId, getProgramAccount } = useCommonProgram();
+  const { cluster, program } = useCommonProgram();
   const transactionToast = useTransactionToast();
   const createEmployeeAccount = useMutation<string, Error, ICreateEmployee>({
     mutationKey: ["employeeAccount", "create", { cluster }],
@@ -171,5 +172,57 @@ export function useFetchVestedEmployees() {
   });
   return {
     employeeAccountsQuery,
+  };
+}
+export function useCompanyEmployees({
+  treasuryAccount,
+}: {
+  treasuryAccount: PublicKey;
+}) {
+  const { employeeAccountsQuery } = useFetchVestedEmployees();
+  const { connection } = useConnection();
+
+  const availableTokensInAccountQuery = useQuery({
+    queryKey: ["fetch&calc", "availableTokens", treasuryAccount],
+    queryFn: async () => {
+      try {
+        const [employeeResponse, accountInfo, mintInfo] = await Promise.all([
+          employeeAccountsQuery.refetch(),
+          getAccount(connection, treasuryAccount),
+          getMint(
+            connection,
+            (
+              await getAccount(connection, treasuryAccount)
+            ).mint
+          ),
+        ]);
+        const employeeData: IEmployeeVesting[] =
+          employeeResponse?.data || ([] as IEmployeeVesting[]);
+        const allocatedTokens = employeeData.reduce(
+          (prev, curr) =>
+            prev +
+            ((curr.treasuryTokenAccount === treasuryAccount.toString() &&
+              curr.totalAmount) ||
+              0),
+          0
+        );
+        const availableTokensInAccount =
+          Number(accountInfo.amount) / Number(Math.pow(10, mintInfo.decimals)) -
+          allocatedTokens;
+        return availableTokensInAccount;
+      } catch (error) {
+        console.log("Error :", error);
+        toast.error(
+          "Error in fetching employeeresponse,accountInfo or mintInfo "
+        );
+      }
+    },
+    enabled: !!treasuryAccount,
+  });
+
+  return {
+    availableTokensInAccount: availableTokensInAccountQuery.data,
+    availableTokensInAccountIsLoading: availableTokensInAccountQuery.isLoading,
+    availableTokensInAccountError: availableTokensInAccountQuery.error,
   };
 }

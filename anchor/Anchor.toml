@@ -5,14 +5,14 @@ anchor_version = "0.30.1"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-dapptokenvesting = "5hrjpyTCfqqxzuhj8pvt6d4G9EeWknzwH978ns4woNNy"
+[programs.devnet]
+dapptokenvesting = "Czp8mJaaCTKDufmw2Ee3z6113yBG34wiWFy3FdtzaYiP"
 
 [registry]
-url = "http://127.0.0.1:8899"
+url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

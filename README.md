@@ -51,5 +51,5 @@ License
 This project is licensed under the MIT License.
 
 Contact
-Created by Kavit Patel.
+Created by Kavit Patel , Whatsapp:+917383737392 email: kvpatel.er@gmail.com.
 Live Demo : https://web3-token-vesting-dapp.vercel.app/

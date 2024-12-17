@@ -4,6 +4,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useMemo, useState } from "react";
 import { useCommonProgram } from "../common/common-data-access";
 import {
+  useCompanyEmployees,
   useCreateEmployeeVesting,
   useFetchVestedEmployees,
   useVesting,
@@ -26,8 +27,7 @@ export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
   const { createVestingAccount } = useVesting();
   const tokenAccountsQuery = useGetTokenAccounts({ address: publicKey });
   const [companyName, setCompanyName] = useState<string>("");
-  const [tokenAmountTobeVested, setTokenAmountTobeVested] =
-    useState<string>("");
+  const [tokenAmountTobeVested, setTokenAmountTobeVested] = useState(0);
   const [mint, setMint] = useState<string>("");
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
@@ -59,14 +59,6 @@ export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
         onChange={(e) => setCompanyName(e.target.value)}
         className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
       />
-      <input
-        type="text"
-        placeholder="Token Amount tobe vested"
-        value={tokenAmountTobeVested}
-        onChange={(e) => setTokenAmountTobeVested(e.target.value)}
-        className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
-      />
-
       <div className="relative">
         <input
           type="text"
@@ -104,19 +96,43 @@ export function VestingdappCreate({ publicKey }: { publicKey: PublicKey }) {
           </div>
         )}
       </div>
-
+      <input
+        type="text"
+        placeholder="Token Amount tobe vested"
+        value={tokenAmountTobeVested || ""}
+        onChange={(e) => {
+          const inputValue = parseInt(e.target.value);
+          const selectedMintMaxAmount = tokenAccountsQuery?.data?.find(
+            (el) => el.account.data.parsed.info.mint === mint
+          )?.account.data.parsed.info.tokenAmount.uiAmount;
+          if (inputValue > selectedMintMaxAmount) {
+            toast.error(
+              `Your current token ${mint.substring(
+                0,
+                8
+              )}... supply is ${selectedMintMaxAmount} ! Please enter less tobe vested !`
+            );
+            return;
+          }
+          setTokenAmountTobeVested(inputValue);
+        }}
+        className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+      />
       <button
         className="btn lg:btn-md btn-primary w-full"
         onClick={() =>
           createVestingAccount.mutateAsync({
             companyName,
-            tokenAmountTobeVested: new BN(
-              parseInt(tokenAmountTobeVested) * 10 ** 9
-            ),
+            tokenAmountTobeVested: new BN(tokenAmountTobeVested * 10 ** 9),
             mint,
           })
         }
-        disabled={createVestingAccount.isPending || !mint || !companyName}
+        disabled={
+          createVestingAccount.isPending ||
+          !mint ||
+          !companyName ||
+          !tokenAmountTobeVested
+        }
       >
         {createVestingAccount.isPending ? (
           <Loader width={40} height={40} color="gray-900" />
@@ -173,6 +189,7 @@ export function VestingdappList() {
                 <VestingdappCard
                   key={account.publicKey.toString()}
                   account={account.publicKey}
+                  treasuryTokenAccount={account.account.treasuryTokenAccount}
                 />
               ))}
             </PerfectScrollbar>
@@ -188,10 +205,21 @@ export function VestingdappList() {
   );
 }
 
-function VestingdappCard({ account }: { account: PublicKey }) {
+function VestingdappCard({
+  account,
+  treasuryTokenAccount,
+}: {
+  account: PublicKey;
+  treasuryTokenAccount: PublicKey;
+}) {
   const { vestingAccountQuery } = useVestingdappProgramAccount({
     account,
   });
+  const { availableTokensInAccount, availableTokensInAccountIsLoading } =
+    useCompanyEmployees({
+      treasuryAccount: treasuryTokenAccount,
+    });
+
   const { createEmployeeAccount } = useCreateEmployeeVesting();
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -214,17 +242,26 @@ function VestingdappCard({ account }: { account: PublicKey }) {
         <div className="space-y-6">
           <div className="flex flex-col">
             <h2
-              className="card-title justify-center text-3xl cursor-pointer"
+              className="card-title justify-center text-3xl cursor-pointer flex flex-col"
               onClick={() => vestingAccountQuery.refetch()}
             >
-              {companyName}
+              <span>{companyName}</span>
+              <span className="text-xs text-gray-500">
+                <span> Available Tokens :</span>
+                {availableTokensInAccountIsLoading ? (
+                  <Loader width={10} height={10} color="green-200" />
+                ) : (
+                  availableTokensInAccount
+                )}
+              </span>
+              <span className="text-xs text-gray-500">
+                Vesting Program:{" "}
+                <ExplorerLink
+                  label={ellipsify(account.toString())}
+                  path={`account/${account.toString()}`}
+                />
+              </span>
             </h2>
-            <span className="text-xs text-gray-500">
-              <ExplorerLink
-                label={ellipsify(account.toString())}
-                path={`account/${account.toString()}`}
-              />
-            </span>
           </div>
           <div className="flex justify-center flex-col gap-4">
             <div className=" flex flex-col md:flex-row justify-center gap-4">
@@ -271,12 +308,21 @@ function VestingdappCard({ account }: { account: PublicKey }) {
                 type="text"
                 placeholder="Total Allocation"
                 value={totalAmount || ""}
-                onChange={(e) => setTotalAmount(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const inputValue = parseInt(e.target.value) || 0;
+                  if (inputValue > (availableTokensInAccount || 0)) {
+                    toast.error(
+                      `You have only ${availableTokensInAccount} no. of tokens tobe vested to employees.`
+                    );
+                  } else {
+                    setTotalAmount(inputValue);
+                  }
+                }}
                 className="input input-bordered w-full max-w-xs"
               />
               <input
                 type="text"
-                placeholder="Beneficiary"
+                placeholder="Beneficiary wallet Address"
                 value={beneficiary || ""}
                 onChange={(e) => setBeneficiary(e.target.value)}
                 className="input input-bordered w-full max-w-xs"

@@ -1,9 +1,23 @@
-import { PublicKey } from "@solana/web3.js";
-import { useQuery } from "@tanstack/react-query";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCommonProgram } from "../common/common-data-access";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import toast from "react-hot-toast";
+import { useTransactionToast } from "../ui/ui-layout";
+import { useRouter } from "next/navigation";
 
 export function useEmployee(walletKey: PublicKey) {
   const { cluster, program } = useCommonProgram();
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const router = useRouter();
+
+  const transactionToast = useTransactionToast();
 
   const calculateClaimableTokens = (
     startTime: number,
@@ -70,5 +84,78 @@ export function useEmployee(walletKey: PublicKey) {
     },
   });
 
-  return { employeeAccounts, calculateClaimableTokens };
+  const claimTokens = useMutation({
+    mutationKey: ["claim-tokens"],
+    mutationFn: async ({
+      companyName,
+      vestingAccountPubkey,
+      employeeAccountPubkey,
+      mintPubkey,
+      treasuryTokenAccountPubkey,
+    }: {
+      companyName: string;
+      vestingAccountPubkey: PublicKey;
+      employeeAccountPubkey: PublicKey;
+      mintPubkey: PublicKey;
+      treasuryTokenAccountPubkey: PublicKey;
+    }) => {
+      if (!walletKey) {
+        throw new Error("Wallet or program is not initialized.");
+      }
+
+      const ata = await getAssociatedTokenAddress(
+        mintPubkey,
+        walletKey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: walletKey,
+      });
+
+      const instruction = await program.methods
+        .claimTokens(companyName)
+        .accounts({
+          beneficiary: walletKey,
+          employeeAccount: employeeAccountPubkey,
+          vestingAccount: vestingAccountPubkey,
+          mint: mintPubkey,
+          treasuryTokenAccount: treasuryTokenAccountPubkey,
+          employeeTokenAccount: ata,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .instruction();
+      transaction.add(instruction);
+
+      if (!wallet.signTransaction) {
+        toast.error(
+          "The wallet adapter does not support signing transactions."
+        );
+        throw new Error(
+          "The wallet adapter does not support signing transactions."
+        );
+      }
+      const signedTransaction = await wallet.signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+        }
+      );
+      transactionToast(signature);
+      router.push("/employeetoken");
+      return employeeAccounts.refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(`Claim tokens failed: ${error.message}`);
+    },
+  });
+
+  return { employeeAccounts, calculateClaimableTokens, claimTokens };
 }

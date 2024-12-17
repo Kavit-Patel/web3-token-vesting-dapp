@@ -3,8 +3,6 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "../solana/solana-provider";
 import { EmployeeUi } from "./employee-ui";
-import { useCommonProgram } from "../common/common-data-access";
-import { usePathname } from "next/navigation";
 
 export default function EmployeeFeature() {
   const { publicKey } = useWallet();

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 
-declare_id!("5hrjpyTCfqqxzuhj8pvt6d4G9EeWknzwH978ns4woNNy");
+declare_id!("Czp8mJaaCTKDufmw2Ee3z6113yBG34wiWFy3FdtzaYiP");
 #[program]
 pub mod vesting {
     use super::*;
@@ -66,46 +66,61 @@ pub mod vesting {
 
     pub fn claim_tokens(ctx: Context<ClaimTokens>, _company_name: String) -> Result<()> {
         let employee_account = &mut ctx.accounts.employee_account;
+    
         let now = Clock::get()?.unix_timestamp;
+    
         if now < employee_account.cliff_time {
             return Err(ErrorCode::ClaimNotAvailableYet.into());
         }
-        // Calculate the vested amount
+    
         let time_since_start = now.saturating_sub(employee_account.start_time);
-       
         let total_vesting_time = employee_account
             .end_time
             .saturating_sub(employee_account.start_time);
+    
         let vested_amount = if now >= employee_account.end_time {
             employee_account.total_amount
         } else {
             (employee_account.total_amount * time_since_start) / total_vesting_time
         };
-        //Calculate the amount that can be withdrawn
+    
         let claimable_amount = vested_amount.saturating_sub(employee_account.total_withdrawn);
-        // Check if there is anything left to claim
-
-        if claimable_amount == 0 {
+    
+        if claimable_amount <= 0 {
             return Err(ErrorCode::NothingToClaim.into());
         }
+    
+        let decimals = ctx.accounts.mint.decimals;
+        if claimable_amount < 0 {
+            return Err(ErrorCode::InvalidClaimAmount.into());
+        }
+    
+        let claimable_amount_scaled = (claimable_amount as u64)
+            .checked_mul(10_u64.pow(decimals as u32))
+            .ok_or(ErrorCode::InvalidClaimAmount)?;
+    
         let transfer_cpi_accounts = TransferChecked {
             from: ctx.accounts.treasury_token_account.to_account_info(),
             mint: ctx.accounts.mint.to_account_info(),
             to: ctx.accounts.employee_token_account.to_account_info(),
             authority: ctx.accounts.treasury_token_account.to_account_info(),
         };
+    
         let cpi_program = ctx.accounts.token_program.to_account_info();
+    
         let signer_seeds: &[&[&[u8]]] = &[&[
             b"vesting_treasury",
             ctx.accounts.vesting_account.company_name.as_ref(),
             &[ctx.accounts.vesting_account.treasury_bump],
         ]];
+    
         let cpi_context =
             CpiContext::new(cpi_program, transfer_cpi_accounts).with_signer(signer_seeds);
-        let decimals = ctx.accounts.mint.decimals;
-        token_interface::transfer_checked(cpi_context, claimable_amount as u64, decimals)?;
-        
+    
+        token_interface::transfer_checked(cpi_context, claimable_amount_scaled, decimals)?;
+    
         employee_account.total_withdrawn += claimable_amount;
+    
         Ok(())
     }
 }
@@ -229,4 +244,6 @@ pub enum ErrorCode {
     ClaimNotAvailableYet,
     #[msg("There is nothing to claim.")]
     NothingToClaim,
+    #[msg("Claimed Amount is invalid. ")]
+    InvalidClaimAmount,
 }

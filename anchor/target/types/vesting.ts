@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/vesting.json`.
  */
 export type Vesting = {
-  "address": "5hrjpyTCfqqxzuhj8pvt6d4G9EeWknzwH978ns4woNNy",
+  "address": "Czp8mJaaCTKDufmw2Ee3z6113yBG34wiWFy3FdtzaYiP",
   "metadata": {
     "name": "vesting",
     "version": "0.1.0",
@@ -477,6 +477,11 @@ export type Vesting = {
       "code": 6001,
       "name": "nothingToClaim",
       "msg": "There is nothing to claim."
+    },
+    {
+      "code": 6002,
+      "name": "invalidClaimAmount",
+      "msg": "Claimed Amount is invalid. "
     }
   ],
   "types": [

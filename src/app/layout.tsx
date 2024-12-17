@@ -19,7 +19,7 @@ const companyLinks: { label: string; path: string }[] = [
   { label: "Vested Employees", path: "/vestedemployees" },
 ];
 const employeeLinks: { label: string; path: string }[] = [
-  { label: "Claim Token - IN FUTURE", path: "/employeetoken" },
+  { label: "Claim Token", path: "/employeetoken" },
 ];
 
 export default function RootLayout({
