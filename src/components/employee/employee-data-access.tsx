@@ -150,7 +150,7 @@ export function useEmployee(walletKey: PublicKey) {
       );
       transactionToast(signature);
       router.push("/employeetoken");
-      return employeeAccounts.refetch();
+      return signature;
     },
     onError: (error: Error) => {
       toast.error(`Claim tokens failed: ${error.message}`);

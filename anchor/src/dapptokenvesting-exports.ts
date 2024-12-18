@@ -23,7 +23,7 @@ export function getDapptokenvestingProgramId(cluster: Cluster) {
     case "devnet":
     case "testnet":
       // This is the program ID for the Dapptokenvesting program on devnet and testnet.
-      return new PublicKey("Czp8mJaaCTKDufmw2Ee3z6113yBG34wiWFy3FdtzaYiP");
+      return new PublicKey("9dR51Bi5GuvqfHkUKiZ7hSnLcAMdGdHjmhSBu5ZN4fWa");
     case "mainnet-beta":
     default:
       return DAPPTOKENVESTING_PROGRAM_ID;

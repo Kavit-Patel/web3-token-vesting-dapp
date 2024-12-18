@@ -8,6 +8,8 @@ import { IoMdRefresh } from "react-icons/io";
 import { useEffect, useState } from "react";
 import { IClaimTokens, IEmployeeVesting } from "./employee-types";
 import Loader from "../common/common-loader";
+import { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
   const {
@@ -49,6 +51,7 @@ export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
         <div className="max-w-[100vw-200px]">
           <EmployeeProgramCard
             employeeAccounts={employeeAccountsQuery.data}
+            refetch={employeeAccountsQuery.refetch}
             claimableTokens={calculateClaimableTokens}
             claimTokens={claimTokens.mutateAsync}
           />
@@ -65,10 +68,14 @@ export function EmployeeUi({ publicKey }: { publicKey: PublicKey }) {
 
 function EmployeeProgramCard({
   employeeAccounts,
+  refetch,
   claimableTokens,
   claimTokens,
 }: {
   employeeAccounts: IEmployeeVesting[];
+  refetch: (
+    options?: RefetchOptions | undefined
+  ) => Promise<QueryObserverResult<IEmployeeVesting[], Error>>;
   claimableTokens: (
     startTime: number,
     endTime: number,
@@ -83,8 +90,9 @@ function EmployeeProgramCard({
     employeeAccountPubkey,
     mintPubkey,
     treasuryTokenAccountPubkey,
-  }: IClaimTokens) => void;
+  }: IClaimTokens) => Promise<string>;
 }) {
+  const { connection } = useConnection();
   const [claimableTokenMap, setClaimableTokenMap] = useState<{
     [key: string]: string;
   }>({});
@@ -96,15 +104,15 @@ function EmployeeProgramCard({
     if (!claimingState) {
       const initialClaimableTokens: { [key: string]: string } = {};
       const initialClaimLoading: { [key: string]: boolean } = {};
-      employeeAccounts.forEach((employeeAccount) => {
+      employeeAccounts.forEach(async (employeeAccount) => {
         setClaimTokenLoading({ [employeeAccount.pda]: false });
-        const currentClaimableTokens = claimableTokens(
+        const currentClaimableTokens = await claimableTokens(
           employeeAccount.startTime,
           employeeAccount.endTime,
           employeeAccount.cliffTime,
           employeeAccount.totalAmount,
           employeeAccount.totalWithdrawn,
-          Math.floor(Date.now() / 1000) // Current time in seconds
+          Math.floor(Date.now() / 1000)
         ).toFixed(2);
         initialClaimableTokens[employeeAccount.pda] = currentClaimableTokens;
         initialClaimLoading[employeeAccount.pda] = false;
@@ -112,7 +120,7 @@ function EmployeeProgramCard({
       setClaimableTokenMap(initialClaimableTokens);
       setClaimTokenLoading(initialClaimLoading);
     }
-  }, [employeeAccounts, claimableTokens]);
+  }, [employeeAccounts, claimableTokens, claimingState]);
 
   const refreshClaimableTokens = (
     pda: string,
@@ -264,30 +272,39 @@ function EmployeeProgramCard({
                     </div>
                     <button
                       onClick={async () => {
-                        try {
-                          setClaimingState(true);
-                          setClaimTokenLoading((prev) => ({
-                            ...prev,
-                            [employeeAccount.pda]: true,
-                          }));
-                          await claimTokens({
-                            companyName: employeeAccount.companyName,
-                            vestingAccountPubkey: new PublicKey(
-                              employeeAccount.vestingAccount
-                            ),
-                            employeeAccountPubkey: new PublicKey(
-                              employeeAccount.pda
-                            ),
-                            mintPubkey: new PublicKey(employeeAccount.token),
-                            treasuryTokenAccountPubkey: new PublicKey(
-                              employeeAccount.treasuryTokenAccount
-                            ),
+                        setClaimingState(true);
+                        setClaimTokenLoading((prev) => ({
+                          ...prev,
+                          [employeeAccount.pda]: true,
+                        }));
+                        await claimTokens({
+                          companyName: employeeAccount.companyName,
+                          vestingAccountPubkey: new PublicKey(
+                            employeeAccount.vestingAccount
+                          ),
+                          employeeAccountPubkey: new PublicKey(
+                            employeeAccount.pda
+                          ),
+                          mintPubkey: new PublicKey(employeeAccount.token),
+                          treasuryTokenAccountPubkey: new PublicKey(
+                            employeeAccount.treasuryTokenAccount
+                          ),
+                        })
+                          .then(async (signature) => {
+                            await connection.confirmTransaction(
+                              signature,
+                              "confirmed"
+                            );
+                            await refetch();
+                          })
+                          .catch((err) => console.log("Error : ", err))
+                          .finally(() => {
+                            setClaimingState(false);
+                            setClaimTokenLoading((prev) => ({
+                              ...prev,
+                              [employeeAccount.pda]: false,
+                            }));
                           });
-                        } catch (error) {
-                          console.log("Error :", error);
-                        } finally {
-                          setClaimingState(false);
-                        }
                       }}
                       className={`cursor-pointer w-full text-center font-semibold border border-gray-500 rounded-md px-4 py-2  md:text-xl ${
                         parseInt(claimableTokenMap[employeeAccount.pda]) === 0

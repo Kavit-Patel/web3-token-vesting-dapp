@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-dapptokenvesting = "Czp8mJaaCTKDufmw2Ee3z6113yBG34wiWFy3FdtzaYiP"
+dapptokenvesting = "9dR51Bi5GuvqfHkUKiZ7hSnLcAMdGdHjmhSBu5ZN4fWa"
 
 [registry]
 url = "https://api.devnet.solana.com"

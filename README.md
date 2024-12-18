@@ -2,7 +2,7 @@
 A Solana blockchain-based platform that allows companies to create and manage tokens, set up token vesting programs for employees, and enable employees to claim their vested tokens.
 
 🚀 Live Deployment
-The backend is live and accessible at: [Data Statistics Backend](https://web3-token-vesting-dapp.vercel.app/)
+The backend is live and accessible at: [Token vesting dapp](https://web3-token-vesting-dapp.vercel.app/)
 
 Features
 For Companies:
